@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from time import sleep
 from sys import exit
@@ -48,7 +48,7 @@ def update_index():
     except (requests.ConnectionError, requests.ConnectTimeout):
         print('Connection Error')
 
-def show_graph(v, r, g, b):
+def show_graph(v):
     v *= ledshim.NUM_PIXELS
     for x in range(ledshim.NUM_PIXELS):
         hue = ((hue_start + ((x / float(ledshim.NUM_PIXELS)) * hue_range)) % 360) / 360.0
@@ -63,6 +63,18 @@ def show_graph(v, r, g, b):
 
     ledshim.show()
 
+def swipe_up(top):
+    for x in range(top):
+        v = x/100
+        show_graph(v)
+
+def swipe_down(bottom):
+    for x in range(bottom):
+        v = x/100
+        show_graph(1-v)
+
+
+
 #Set Up On_Off Button
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -70,20 +82,15 @@ GPIO.add_event_detect(27, GPIO.FALLING, bouncetime=200)
 GPIO.add_event_callback(27, callback_27)
 
 init_leds()
-#ledshim.set_brightness(brightness)
+
+update_index()
+swipe_up(100)
+swipe_down(100-fng)
 
 while 1:
-    update_index()
-
-    for x in range(100):
-        v = x/100
-        show_graph(v, 255, 0, 255)
-    for x in range(100-fng):
-        v = x/100
-        show_graph(1-v, 255, 0, 255)
-
-    update_index()
-    #show_graph(fng/100, 255, 0, 255)
     delay = min(delay,86460) #Ensure we update every day
     print('Delaying for ' + str(delay) + ' seconds')
     sleep(delay)
+    update_index()
+    show_graph(fng/100)
+
