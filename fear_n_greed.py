@@ -27,13 +27,13 @@ def callback_27(channel):
     print('Button 27 Pressed')
     if (on_off>0):
         on_off = 0
-        swipe_down(fng,0)
+        swipe(fng,0)
         ledshim.set_brightness(on_off)
         ledshim.show()
     else:
         on_off = brightness
         ledshim.set_brightness(on_off)
-        swipe_up(0,fng)
+        swipe(0,fng)
 
 def init_leds():
     ledshim.set_all(0,0,0,0)
@@ -66,6 +66,12 @@ def show_graph(v):
 
     ledshim.show()
 
+def swipe(start, end):
+    if start>end:
+        swipe_down(start, end)
+    else:
+        swipe_up(start, end)
+
 def swipe_up(low, high):
     for x in range(low, high):
         v = x/100
@@ -87,8 +93,8 @@ GPIO.add_event_callback(27, callback_27)
 init_leds()
 
 update_index()
-swipe_up(0,100)
-swipe_down(100,fng)
+swipe(0,100)
+swipe(100,fng)
 
 while 1:
     delay = min(delay,86460) #Ensure we update every day
