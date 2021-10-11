@@ -12,6 +12,7 @@ import RPi.GPIO as GPIO
 url = 'https://api.alternative.me/fng/'
 
 fng = 0
+graph_value = 0
 
 ledshim.set_clear_on_exit(False)
 
@@ -20,20 +21,12 @@ hue_start = 10
 max_brightness = 0.8
 brightness = 0.6
 
-on_off = brightness
-
 def callback_27(channel):
     global on_off
-    print('Button 27 Pressed')
-    if (on_off>0):
-        on_off = 0
-        swipe(fng,0)
-        ledshim.set_brightness(on_off)
-        ledshim.show()
+    if (graph_value>0):
+        swipe(0)
     else:
-        on_off = brightness
-        ledshim.set_brightness(on_off)
-        swipe(0,fng)
+        swipe(fng)
 
 def init_leds():
     ledshim.set_all(0,0,0,0)
@@ -42,6 +35,7 @@ def init_leds():
 def update_index():
     global fng
     global delay
+    global graph_value
     try:
         r = requests.get(url=url)
         temp = r.json()['data'].pop()
@@ -52,7 +46,9 @@ def update_index():
         print('Connection Error')
 
 def show_graph(v):
-    v *= ledshim.NUM_PIXELS
+    global graph_value
+    graph_value = v
+    v *= ledshim.NUM_PIXELS/100
     for x in range(ledshim.NUM_PIXELS):
         hue = ((hue_start + ((x / float(ledshim.NUM_PIXELS)) * hue_range)) % 360) / 360.0
         r, g, b = [int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0)]
@@ -66,21 +62,23 @@ def show_graph(v):
 
     ledshim.show()
 
-def swipe(start, end):
-    if start>end:
-        swipe_down(start, end)
+def swipe(target):
+    global graph_value
+    print(str(graph_value) + 'before swipe')
+    if target<graph_value:
+        swipe_down(graph_value, target)
     else:
-        swipe_up(start, end)
+        swipe_up(graph_value, target)
+    print(str(graph_value) + 'after swipe')
+
 
 def swipe_up(low, high):
-    for x in range(low, high):
-        v = x/100
-        show_graph(v)
+    for x in range(low+1, high+1):
+        show_graph(x)
 
 def swipe_down(high, low):
-    for x in range(high, low, -1):
-        v = x/100
-        show_graph(v)
+    for x in range(high-1, low-1, -1):
+        show_graph(x)
 
 
 
@@ -93,13 +91,13 @@ GPIO.add_event_callback(27, callback_27)
 init_leds()
 
 update_index()
-swipe(0,100)
-swipe(100,fng)
+swipe(100)
+swipe(fng)
 
 while 1:
     delay = min(delay,86460) #Ensure we update every day
     print('Delaying for ' + str(delay) + ' seconds')
     sleep(delay)
     update_index()
-    show_graph(fng/100)
+    swipe(fng)
 
