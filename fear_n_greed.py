@@ -32,12 +32,9 @@ def callback_27(channel):
     ledshim.set_brightness(on_off)
     ledshim.show()
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.add_event_detect(27, GPIO.FALLING, bouncetime=200)
-GPIO.add_event_callback(27, callback_27)
-
-
+def init_leds():
+    ledshim.set_all(0,0,0,0)
+    ledshim.show()
 
 def update_index():
     global fng
@@ -66,7 +63,14 @@ def show_graph(v, r, g, b):
 
     ledshim.show()
 
-ledshim.set_brightness(brightness)
+#Set Up On_Off Button
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.add_event_detect(27, GPIO.FALLING, bouncetime=200)
+GPIO.add_event_callback(27, callback_27)
+
+init_leds()
+#ledshim.set_brightness(brightness)
 
 while 1:
     update_index()
