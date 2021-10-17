@@ -14,7 +14,7 @@ url = 'https://api.alternative.me/fng/'
 fng = 0
 graph_value = 0
 
-ledshim.set_clear_on_exit(False)
+ledshim.set_clear_on_exit(True)
 
 hue_range = 80
 hue_start = 10
@@ -41,7 +41,7 @@ def update_index():
         temp = r.json()['data'].pop()
         fng = int(temp['value'])
         delay = int(temp['time_until_update'])
-        print('Index = ' + str(fng))
+        #print('Index = ' + str(fng))
     except (requests.ConnectionError, requests.ConnectTimeout):
         print('Connection Error')
 
@@ -64,12 +64,12 @@ def show_graph(v):
 
 def swipe(target):
     global graph_value
-    print(str(graph_value) + 'before swipe')
+    #print(str(graph_value) + 'before swipe')
     if target<graph_value:
         swipe_down(graph_value, target)
     else:
         swipe_up(graph_value, target)
-    print(str(graph_value) + 'after swipe')
+    #print(str(graph_value) + 'after swipe')
 
 
 def swipe_up(low, high):
@@ -96,7 +96,7 @@ swipe(fng)
 
 while 1:
     delay = min(delay,86460) #Ensure we update every day
-    print('Delaying for ' + str(delay) + ' seconds')
+    #print('Delaying for ' + str(delay) + ' seconds')
     sleep(delay)
     update_index()
     swipe(fng)
