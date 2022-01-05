@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+"""Display Fear and Greed Index for Cryptocurrency on 1d RGB pixel graph"""
 
 from time import sleep
-from sys import exit
 
 import colorsys
 import ledshim
@@ -9,95 +9,114 @@ import requests
 
 import RPi.GPIO as GPIO
 
-url = 'https://api.alternative.me/fng/'
 
-fng = 0
-graph_value = 0
+class OneDGraph:
+    """Representation of OneDimensional Graph with Red->Green Colour gradient"""
 
-ledshim.set_clear_on_exit(True)
+    def __init__(self):
+        self.graph_value = 0
+        self.hue_range = 80
+        self.hue_start = 10
+        self.max_brightness = 0.8
+        self.brightness = 0.6
 
-hue_range = 80
-hue_start = 10
-max_brightness = 0.8
-brightness = 0.6
+    def init_leds(self):
+        """Initialise LEDs"""
+        ledshim.set_clear_on_exit(True)
+        ledshim.set_all(0, 0, 0, 0)
+        ledshim.show()
 
-def callback_27(channel):
-    global on_off
-    if (graph_value>0):
-        swipe(0)
-    else:
-        swipe(fng)
+    def show_graph(self, graph_value: int) -> None:
+        """Display value on graph"""
+        self.graph_value = graph_value
+        graph_value *= ledshim.NUM_PIXELS / 100
+        for x in range(ledshim.NUM_PIXELS):
+            hue = (
+                (self.hue_start + ((x / float(ledshim.NUM_PIXELS)) * self.hue_range))
+                % 360
+            ) / 360.0
+            red, green, blue = [
+                int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+            ]
+            if graph_value <= 0:
+                brightness = 0
+            else:
+                brightness = min(graph_value, 1.0) * self.max_brightness
 
-def init_leds():
-    ledshim.set_all(0,0,0,0)
-    ledshim.show()
+            ledshim.set_pixel(x, red, green, blue, brightness)
+            graph_value -= 1
 
-def update_index():
-    global fng
-    global delay
-    global graph_value
-    try:
-        r = requests.get(url=url)
-        temp = r.json()['data'].pop()
-        fng = int(temp['value'])
-        delay = int(temp['time_until_update'])
-        #print('Index = ' + str(fng))
-    except (requests.ConnectionError, requests.ConnectTimeout):
-        print('Connection Error')
+        ledshim.show()
 
-def show_graph(v):
-    global graph_value
-    graph_value = v
-    v *= ledshim.NUM_PIXELS/100
-    for x in range(ledshim.NUM_PIXELS):
-        hue = ((hue_start + ((x / float(ledshim.NUM_PIXELS)) * hue_range)) % 360) / 360.0
-        r, g, b = [int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0)]
-        if v < 0:
-            brightness = 0
+    def swipe(self, target: int) -> None:
+        """Animate graph from current position to target"""
+        if target < self.graph_value:
+            self.swipe_down(self.graph_value, target)
         else:
-            brightness = min(v, 1.0) * max_brightness
+            self.swipe_up(self.graph_value, target)
 
-        ledshim.set_pixel(x, r, g, b, brightness)
-        v -= 1
+    def swipe_up(self, low: int, high: int) -> None:
+        """Animate graph from low to high"""
+        for value in range(low + 1, high + 1):
+            self.show_graph(value)
 
-    ledshim.show()
-
-def swipe(target):
-    global graph_value
-    #print(str(graph_value) + 'before swipe')
-    if target<graph_value:
-        swipe_down(graph_value, target)
-    else:
-        swipe_up(graph_value, target)
-    #print(str(graph_value) + 'after swipe')
+    def swipe_down(self, high: int, low: int) -> None:
+        """Animate graph from high to low"""
+        for value in range(high - 1, low - 1, -1):
+            self.show_graph(value)
 
 
-def swipe_up(low, high):
-    for x in range(low+1, high+1):
-        show_graph(x)
+class DataSource:
+    """Data fetcher"""
 
-def swipe_down(high, low):
-    for x in range(high-1, low-1, -1):
-        show_graph(x)
+    url = "https://api.alternative.me/fng/"
+
+    @classmethod
+    def get_new_data(cls) -> int:
+        """Class Method to fetch updated data"""
+        try:
+            r = requests.get(url=cls.url)
+            temp = r.json()["data"].pop()
+            fear_n_greed_value = int(temp["value"])
+            time_to_next_update = int(temp["time_until_update"])
+            return fear_n_greed_value, time_to_next_update
+        except (requests.ConnectionError, requests.ConnectTimeout):
+            print("Connection Error")
+            return -1, -1
 
 
+class Button:
+    """Button that detects presses and runs callback function"""
 
-#Set Up On_Off Button
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.add_event_detect(27, GPIO.FALLING, bouncetime=300)
-GPIO.add_event_callback(27, callback_27)
+    def __init__(self) -> None:
+        self.button_id = 0
+        self.bounce_time = 0
 
-init_leds()
+    def setup(self, button_id: int, bounce_time: int = 300, callback=None) -> None:
+        """Setup Button"""
+        self.button_id = button_id
+        self.bounce_time = bounce_time
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(button_id, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.add_event_detect(button_id, GPIO.FALLING, bouncetime=bounce_time)
+        GPIO.add_event_callback(button_id, callback)
 
-update_index()
-swipe(100)
-swipe(fng)
 
-while 1:
-    delay = min(delay,86460) #Ensure we update every day
-    #print('Delaying for ' + str(delay) + ' seconds')
-    sleep(delay)
-    update_index()
-    swipe(fng)
+def main():
+    """Daily update of Red-Green Gradient Graph based on Fear N Greed Index"""
+    graph = OneDGraph()
+    graph.init_leds()
+    value, remaining_time = DataSource.get_new_data()
+    graph.swipe(100)
+    graph.swipe(value)
 
+    remaining_time = 3600
+
+    while 1:
+        remaining_time = min(remaining_time, 3600)  # Ensure we update every day
+        sleep(remaining_time)
+        value, remaining_time = DataSource.get_new_data()
+
+
+if __name__ == "__main__":
+    main()

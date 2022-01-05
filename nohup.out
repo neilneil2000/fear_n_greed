@@ -1,0 +1,78 @@
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 100, in <module>
+    sleep(delay)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 100, in <module>
+    sleep(delay)
+ValueError: sleep length must be non-negative
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 100, in <module>
+    sleep(delay)
+ValueError: sleep length must be non-negative
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 94, in <module>
+    swipe(100)
+  File "./fear_n_greed.py", line 71, in swipe
+    swipe_up(graph_value, target)
+  File "./fear_n_greed.py", line 77, in swipe_up
+    show_graph(x)
+  File "./fear_n_greed.py", line 63, in show_graph
+    ledshim.show()
+  File "/usr/lib/python3/dist-packages/ledshim/is31fl3731.py", line 263, in show
+    self.i2c.write_i2c_block_data(self.address, _COLOR_OFFSET + offset, chunk)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 95, in <module>
+    swipe(fng)
+  File "./fear_n_greed.py", line 69, in swipe
+    swipe_down(graph_value, target)
+  File "./fear_n_greed.py", line 81, in swipe_down
+    show_graph(x)
+  File "./fear_n_greed.py", line 63, in show_graph
+    ledshim.show()
+  File "/usr/lib/python3/dist-packages/ledshim/is31fl3731.py", line 263, in show
+    self.i2c.write_i2c_block_data(self.address, _COLOR_OFFSET + offset, chunk)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 100, in <module>
+    sleep(delay)
+ValueError: sleep length must be non-negative
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 100, in <module>
+    sleep(delay)
+ValueError: sleep length must be non-negative
+Traceback (most recent call last):
+  File "./fear_n_greed.py", line 100, in <module>
+    sleep(delay)
+ValueError: sleep length must be non-negative
+from: can't read /var/mail/time
+from: can't read /var/mail/sys
+./fear_n_greed.py: 6: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 7: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 8: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 10: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 12: ./fear_n_greed.py: url: not found
+./fear_n_greed.py: 14: ./fear_n_greed.py: fng: not found
+./fear_n_greed.py: 15: ./fear_n_greed.py: graph_value: not found
+./fear_n_greed.py: 17: ./fear_n_greed.py: Syntax error: word unexpected (expecting ")")
+from: can't read /var/mail/time
+from: can't read /var/mail/sys
+./fear_n_greed.py: 6: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 7: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 8: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 10: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 12: ./fear_n_greed.py: url: not found
+./fear_n_greed.py: 14: ./fear_n_greed.py: fng: not found
+./fear_n_greed.py: 15: ./fear_n_greed.py: graph_value: not found
+./fear_n_greed.py: 17: ./fear_n_greed.py: Syntax error: word unexpected (expecting ")")
+from: can't read /var/mail/time
+from: can't read /var/mail/sys
+./fear_n_greed.py: 6: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 7: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 8: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 10: ./fear_n_greed.py: import: not found
+./fear_n_greed.py: 12: ./fear_n_greed.py: url: not found
+./fear_n_greed.py: 14: ./fear_n_greed.py: fng: not found
+./fear_n_greed.py: 15: ./fear_n_greed.py: graph_value: not found
+./fear_n_greed.py: 17: ./fear_n_greed.py: Syntax error: word unexpected (expecting ")")
