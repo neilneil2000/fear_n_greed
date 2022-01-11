@@ -3,6 +3,7 @@
 
 from time import sleep
 
+from typing import Tuple
 import colorsys
 import ledshim
 import requests
@@ -11,41 +12,49 @@ import RPi.GPIO as GPIO
 
 
 class OneDGraph:
-    """Representation of OneDimensional Graph with Red->Green Colour gradient"""
+    """Representation of OneDimensional Graph with Red->Green Colour gradient using 0-100 as input range"""
 
     def __init__(self):
         self.graph_value = 0
         self.hue_range = 80
         self.hue_start = 10
         self.max_brightness = 0.8
-        self.brightness = 0.6
 
     def init_leds(self):
         """Initialise LEDs"""
         ledshim.set_clear_on_exit(True)
-        ledshim.set_all(0, 0, 0, 0)
+        ledshim.set_all(r=0, g=0, b=0, brightness=0)
         ledshim.show()
+
+    def calculate_hue(self, value: int) -> int:
+        """Calculate hue for given value"""
+        hue = (
+            (self.hue_start + ((value / float(ledshim.NUM_PIXELS)) * self.hue_range))
+            % 360
+        ) / 360.0
+        return hue
+
+    def convert_hue_to_rgb(self, hue: int) -> Tuple[int, int, int]:
+        """Convert hue value to rgb"""
+        return (int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0))
+
+    def calculate_brightness(self, value: int) -> int:
+        """Calculate Brightness for given value"""
+        if value <= 0:
+            return 0
+        else:
+            return min(value, 1.0) * self.max_brightness
 
     def show_graph(self, graph_value: int) -> None:
         """Display value on graph"""
         self.graph_value = graph_value
         graph_value *= ledshim.NUM_PIXELS / 100
-        for x in range(ledshim.NUM_PIXELS):
-            hue = (
-                (self.hue_start + ((x / float(ledshim.NUM_PIXELS)) * self.hue_range))
-                % 360
-            ) / 360.0
-            red, green, blue = [
-                int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-            ]
-            if graph_value <= 0:
-                brightness = 0
-            else:
-                brightness = min(graph_value, 1.0) * self.max_brightness
-
-            ledshim.set_pixel(x, red, green, blue, brightness)
+        for pixel_id in range(ledshim.NUM_PIXELS):
+            hue = self.calculate_hue(pixel_id)
+            red, green, blue = self.convert_hue_to_rgb(hue)
+            brightness = self.calculate_brightness(graph_value)
+            ledshim.set_pixel(pixel_id, red, green, blue, brightness)
             graph_value -= 1
-
         ledshim.show()
 
     def swipe(self, target: int) -> None:
@@ -74,15 +83,11 @@ class DataSource:
     @classmethod
     def get_new_data(cls) -> int:
         """Class Method to fetch updated data"""
-        try:
-            r = requests.get(url=cls.url)
-            temp = r.json()["data"].pop()
-            fear_n_greed_value = int(temp["value"])
-            time_to_next_update = int(temp["time_until_update"])
-            return fear_n_greed_value, time_to_next_update
-        except (requests.ConnectionError, requests.ConnectTimeout):
-            print("Connection Error")
-            return -1, -1
+        r = requests.get(url=cls.url)
+        temp = r.json()["data"].pop()
+        fear_n_greed_value = int(temp["value"])
+        time_to_next_update = int(temp["time_until_update"])
+        return fear_n_greed_value, time_to_next_update
 
 
 class Button:
@@ -104,18 +109,21 @@ class Button:
 
 def main():
     """Daily update of Red-Green Gradient Graph based on Fear N Greed Index"""
+    remaining_time = 0
     graph = OneDGraph()
     graph.init_leds()
-    value, remaining_time = DataSource.get_new_data()
+
     graph.swipe(100)
-    graph.swipe(value)
 
-    remaining_time = 3600
-
-    while 1:
+    while True:
+        try:
+            value, remaining_time = DataSource.get_new_data()
+            graph.swipe(value)
+        except ConnectionError:
+            value = 0
+            remaining_time = 60
         remaining_time = min(remaining_time, 3600)  # Ensure we update every day
         sleep(remaining_time)
-        value, remaining_time = DataSource.get_new_data()
 
 
 if __name__ == "__main__":
