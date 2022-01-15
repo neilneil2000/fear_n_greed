@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Display Fear and Greed Index for Cryptocurrency on 1d RGB pixel graph"""
 
-from time import sleep
+from time import sleep,time
 
 from typing import Tuple
 import colorsys
@@ -87,6 +87,7 @@ class DataSource:
         temp = r.json()["data"].pop()
         fear_n_greed_value = int(temp["value"])
         time_to_next_update = int(temp["time_until_update"])
+        print(f"{time()} {temp}")
         return fear_n_greed_value, time_to_next_update
 
 
@@ -123,6 +124,7 @@ def main():
             value = 0
             remaining_time = 60
         remaining_time = min(remaining_time, 3600)  # Ensure we update every day
+        remaining_time = max(0, remaining_time) #Avoid weird bug where remaining_time comes back negative
         sleep(remaining_time)
 
 
