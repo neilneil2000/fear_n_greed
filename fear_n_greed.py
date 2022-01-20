@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
 """Display Fear and Greed Index for Cryptocurrency on 1d RGB pixel graph"""
 
-from time import sleep,time
-
-from typing import Tuple
 import colorsys
+from time import sleep
+from typing import Tuple
+
+import gpiozero
 import ledshim
 import requests
 
-import RPi.GPIO as GPIO
-
 
 class OneDGraph:
-    """Representation of OneDimensional Graph with Red->Green Colour gradient using 0-100 as input range"""
+    """
+    Representation of OneDimensional Graph with Red->Green Colour gradient
+    Uses 0-100 as input range
+    """
 
     def __init__(self):
+        self.graph_target = 0
         self.graph_value = 0
         self.hue_range = 80
         self.hue_start = 10
         self.max_brightness = 0.8
+        self.leds_on = False
 
     def init_leds(self):
         """Initialise LEDs"""
         ledshim.set_clear_on_exit(True)
         ledshim.set_all(r=0, g=0, b=0, brightness=0)
         ledshim.show()
+        self.leds_on = True
 
     def calculate_hue(self, value: int) -> int:
         """Calculate hue for given value"""
@@ -34,7 +39,8 @@ class OneDGraph:
         ) / 360.0
         return hue
 
-    def convert_hue_to_rgb(self, hue: int) -> Tuple[int, int, int]:
+    @staticmethod
+    def convert_hue_to_rgb(hue: int) -> Tuple[int, int, int]:
         """Convert hue value to rgb"""
         return (int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0))
 
@@ -42,8 +48,7 @@ class OneDGraph:
         """Calculate Brightness for given value"""
         if value <= 0:
             return 0
-        else:
-            return min(value, 1.0) * self.max_brightness
+        return min(value, 1.0) * self.max_brightness
 
     def show_graph(self, graph_value: int) -> None:
         """Display value on graph"""
@@ -57,8 +62,10 @@ class OneDGraph:
             graph_value -= 1
         ledshim.show()
 
-    def swipe(self, target: int) -> None:
-        """Animate graph from current position to target"""
+    def swipe(self, target: int = None) -> None:
+        """Animate graph from current position to {target}"""
+        if target is None:
+            target = self.graph_value
         if target < self.graph_value:
             self.swipe_down(self.graph_value, target)
         else:
@@ -74,6 +81,16 @@ class OneDGraph:
         for value in range(high - 1, low - 1, -1):
             self.show_graph(value)
 
+    def toggle_lights(self) -> None:
+        """Switch state from lights on to off or vice versa, using swipe"""
+        if self.leds_on:
+            self.graph_target = self.graph_value
+            self.swipe(0)
+            self.leds_on = False
+        else:
+            self.swipe(self.graph_target)
+            self.leds_on = True
+
 
 class DataSource:
     """Data fetcher"""
@@ -83,11 +100,10 @@ class DataSource:
     @classmethod
     def get_new_data(cls) -> int:
         """Class Method to fetch updated data"""
-        r = requests.get(url=cls.url)
-        temp = r.json()["data"].pop()
+        response = requests.get(url=cls.url)
+        temp = response.json()["data"].pop()
         fear_n_greed_value = int(temp["value"])
         time_to_next_update = int(temp["time_until_update"])
-        print(f"{time()} {temp}")
         return fear_n_greed_value, time_to_next_update
 
 
@@ -97,15 +113,14 @@ class Button:
     def __init__(self) -> None:
         self.button_id = 0
         self.bounce_time = 0
+        self.button: gpiozero.Button = None
 
-    def setup(self, button_id: int, bounce_time: int = 300, callback=None) -> None:
+    def setup(self, button_id: int, bounce_time: float = 0.2, callback=None) -> None:
         """Setup Button"""
         self.button_id = button_id
         self.bounce_time = bounce_time
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(button_id, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(button_id, GPIO.FALLING, bouncetime=bounce_time)
-        GPIO.add_event_callback(button_id, callback)
+        self.button = gpiozero.Button(pin=button_id, bounce_time=bounce_time)
+        self.button.when_pressed = callback
 
 
 def main():
@@ -113,18 +128,22 @@ def main():
     remaining_time = 0
     graph = OneDGraph()
     graph.init_leds()
-
+    led_button = Button()
+    led_button.setup(27, callback=graph.toggle_lights)
     graph.swipe(100)
 
     while True:
         try:
             value, remaining_time = DataSource.get_new_data()
+            graph.graph_target = value
             graph.swipe(value)
         except ConnectionError:
             value = 0
             remaining_time = 60
         remaining_time = min(remaining_time, 3600)  # Ensure we update every day
-        remaining_time = max(0, remaining_time) #Avoid weird bug where remaining_time comes back negative
+        remaining_time = max(
+            30, remaining_time
+        )  # Avoid weird bug where remaining_time comes back negative
         sleep(remaining_time)
 
 
