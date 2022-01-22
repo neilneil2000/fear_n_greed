@@ -2,6 +2,7 @@
 """Display Fear and Greed Index for Cryptocurrency on 1d RGB pixel graph"""
 
 import colorsys
+import datetime
 from time import sleep
 from typing import Tuple
 
@@ -135,15 +136,17 @@ def main():
     while True:
         try:
             value, remaining_time = DataSource.get_new_data()
-            graph.graph_target = value
-            graph.swipe(value)
-        except ConnectionError:
+        except requests.ConnectionError as e:
+            print(f"{str(datetime.datetime.now())} CONNECTION ERROR")
+            print(f"{e}")
             value = 0
             remaining_time = 60
+        else:
+            graph.graph_target = value
+            graph.swipe(value)
+
         remaining_time = min(remaining_time, 3600)  # Ensure we update every day
-        remaining_time = max(
-            30, remaining_time
-        )  # Avoid weird bug where remaining_time comes back negative
+        remaining_time = max(30, remaining_time)  # Handle negatives
         sleep(remaining_time)
 
 
