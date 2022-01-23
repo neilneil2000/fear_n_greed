@@ -15,15 +15,21 @@ class OneDGraph:
     """
     Representation of OneDimensional Graph with Red->Green Colour gradient
     Uses 0-100 as input range
+    LED[0] on from 1 onwards
     """
 
-    def __init__(self):
+    def __init__(self, max_value: int = 100) -> None:
+        if max_value:
+            self.max_value = max_value
+        self.scale_factor = ledshim.NUM_PIXELS / self.max_value
+
         self.graph_target = 0
         self.graph_value = 0
         self.hue_range = 80
         self.hue_start = 10
         self.max_brightness = 0.8
         self.leds_on = False
+        self.pixel_colours = []
 
     def init_leds(self):
         """Initialise LEDs"""
@@ -31,6 +37,14 @@ class OneDGraph:
         ledshim.set_all(r=0, g=0, b=0, brightness=0)
         ledshim.show()
         self.leds_on = True
+        self.compute_colours()
+
+    def compute_colours(self):
+        """Compute Colours for each pixel"""
+        for pixel_id in range(ledshim.NUM_PIXELS):
+            hue = self.calculate_hue(pixel_id)
+            red, green, blue = self.convert_hue_to_rgb(hue)
+            self.pixel_colours.append((red, green, blue))
 
     def calculate_hue(self, value: int) -> int:
         """Calculate hue for given value"""
@@ -45,22 +59,14 @@ class OneDGraph:
         """Convert hue value to rgb"""
         return (int(c * 255) for c in colorsys.hsv_to_rgb(hue, 1.0, 1.0))
 
-    def calculate_brightness(self, value: int) -> int:
-        """Calculate Brightness for given value"""
-        if value <= 0:
-            return 0
-        return min(value, 1.0) * self.max_brightness
-
     def show_graph(self, graph_value: int) -> None:
         """Display value on graph"""
         self.graph_value = graph_value
-        graph_value *= ledshim.NUM_PIXELS / 100
+        pixel_value = graph_value * self.scale_factor
         for pixel_id in range(ledshim.NUM_PIXELS):
-            hue = self.calculate_hue(pixel_id)
-            red, green, blue = self.convert_hue_to_rgb(hue)
-            brightness = self.calculate_brightness(graph_value)
+            brightness = self.max_brightness if pixel_id < pixel_value else 0
+            red, green, blue = self.pixel_colours[pixel_id]
             ledshim.set_pixel(pixel_id, red, green, blue, brightness)
-            graph_value -= 1
         ledshim.show()
 
     def swipe(self, target: int = None) -> None:
